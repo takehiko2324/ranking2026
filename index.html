@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>順位途中経過 - 関東ボウリング場協会</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    table { width: 100%; }
+  </style>
+</head>
+<body>
+
+<h2>順位表</h2>
+<p>管理Noで検索可能です。</p>
+
+<input type="file" id="upload-csv" accept=".csv"><br><br>
+
+<table id="ranking-table" class="display">
+  <thead>
+    <tr>
+      <th>順位</th>
+      <th>管理No</th>
+      <th>合計スコア</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+$(document).ready(function () {
+  const table = $('#ranking-table').DataTable();
+
+  $('#upload-csv').on('change', function (e) {
+    Papa.parse(e.target.files[0], {
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        table.clear();
+        results.data.forEach(row => {
+          table.row.add([
+            row['順位'],
+            row['管理No'],
+            row['合計スコア']
+          ]);
+        });
+        table.draw();
+      }
+    });
+  });
+});
+</script>
+
+</body>
+</html>
+
+
+

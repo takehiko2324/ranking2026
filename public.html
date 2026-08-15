@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Ranking</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: bold;
+      color: #343a40;
+    }
+
+    p {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      width: 100%;
+    }
+
+    table {
+      width: 100%;
+      font-size: 1rem;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      white-space: nowrap;
+      padding: 8px 12px;
+    }
+
+    /* 管理No列の最大幅を制限 */
+    th:nth-child(2),
+    td:nth-child(2) {
+      max-width: 120px; /* 約10文字分 */
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 576px) {
+      table {
+        font-size: 0.75rem;
+      }
+
+      th, td {
+        padding: 6px 8px;
+      }
+
+      th:nth-child(2),
+      td:nth-child(2) {
+        max-width: 100px;
+      }
+    }
+
+    table.dataTable thead {
+      background-color: #343a40;
+      color: white;
+    }
+
+    table.dataTable tbody tr:first-child {
+      background-color: #ffeeba !important;
+      font-weight: bold;
+    }
+
+    table.dataTable tbody tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    table.dataTable tbody tr:hover {
+      background-color: #d6eaff;
+    }
+
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select {
+      border-radius: 5px;
+      border: 1px solid #ced4da;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Ranking</h2>
+  <p>管理No検索 ex)KA010001</p>
+
+  <div class="table-wrapper">
+    <table id="ranking-table" class="display">
+      <thead>
+        <tr>
+          <th>順位</th>
+          <th>管理No</th>
+          <th>スコア</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      Papa.parse('ranking.csv', {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function (results) {
+          $('#ranking-table').DataTable({
+            data: results.data.filter(row => row["順位"] && row["管理No"] && row["合計スコア"]),
+            columns: [
+              { data: "順位" },
+              { data: "管理No" },
+              { data: "合計スコア" }
+            ],
+            language: {
+              url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/ja.json"
+            },
+            pageLength: 25
+          });
+        }
+      });
+    });
+  </script>
+
+</body>
+
+
+</html>
