@@ -7,68 +7,137 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
   <style>
     body {
       font-family: sans-serif;
       padding: 20px;
       background-color: #f8f9fa;
     }
+
     h2 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
       font-weight: bold;
       color: #343a40;
     }
-    p {
+
+    .search-box {
       text-align: center;
-      margin-bottom: 10px;
+      margin: 0 auto 18px;
     }
+
+    .search-box label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .search-box input {
+      width: 220px;
+      max-width: 70vw;
+      padding: 8px 10px;
+      border: 1px solid #ced4da;
+      border-radius: 5px;
+      font-size: 1rem;
+      text-transform: uppercase;
+    }
+
+    .search-box button {
+      margin-left: 6px;
+      padding: 8px 14px;
+      border: 1px solid #adb5bd;
+      border-radius: 5px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .search-box button:hover {
+      background: #e9ecef;
+    }
+
+    #search-result {
+      margin-top: 8px;
+      min-height: 1.5em;
+      font-weight: bold;
+    }
+
     .table-wrapper {
       overflow-x: auto;
       width: 100%;
     }
+
     table {
       width: 100%;
       font-size: 1rem;
       border-collapse: collapse;
     }
+
     th, td {
       white-space: nowrap;
       padding: 8px 12px;
     }
-    @media (max-width: 576px) {
-      table {
-        font-size: 0.75rem;
-      }
-      th, td {
-        padding: 6px 8px;
-      }
-    }
+
     table.dataTable thead {
       background-color: #343a40;
       color: white;
     }
+
     table.dataTable tbody tr:first-child {
       background-color: #ffeeba !important;
       font-weight: bold;
     }
+
     table.dataTable tbody tr:nth-child(even) {
       background-color: #f2f2f2;
     }
+
     table.dataTable tbody tr:hover {
       background-color: #d6eaff;
     }
-    .dataTables_wrapper .dataTables_filter input,
+
+    .dataTables_filter {
+      display: none;
+    }
+
     .dataTables_wrapper .dataTables_length select {
       border-radius: 5px;
       border: 1px solid #ced4da;
       padding: 5px;
     }
+
+    @media (max-width: 576px) {
+      table {
+        font-size: 0.75rem;
+      }
+
+      th, td {
+        padding: 6px 8px;
+      }
+
+      .search-box input {
+        width: 170px;
+        font-size: 0.9rem;
+      }
+    }
   </style>
 </head>
+
 <body>
+
   <h2>Ranking</h2>
-  <p>管理コード検索 ex) KA010001</p>
+
+  <div class="search-box">
+    <label for="management-search">管理コード検索</label>
+    <input
+      type="text"
+      id="management-search"
+      placeholder="例：KA010001"
+      autocomplete="off"
+    >
+    <button type="button" id="clear-search">クリア</button>
+    <div id="search-result"></div>
+  </div>
 
   <div class="table-wrapper">
     <table id="ranking-table" class="display">
@@ -90,6 +159,7 @@
         download: true,
         header: true,
         skipEmptyLines: true,
+
         complete: function (results) {
           const rows = results.data.filter(row =>
             row["順位"] &&
@@ -98,7 +168,7 @@
             row["センター"]
           );
 
-          $('#ranking-table').DataTable({
+          const table = $('#ranking-table').DataTable({
             data: rows,
             columns: [
               { data: "順位" },
@@ -112,9 +182,43 @@
             pageLength: 25,
             order: [[0, "asc"]]
           });
+
+          function applyManagementSearch() {
+            const value = $('#management-search').val().trim().toUpperCase();
+
+            if (!value) {
+              table.column(1).search('').draw();
+              $('#search-result').text('');
+              return;
+            }
+
+            table.column(1).search('^' + $.fn.dataTable.util.escapeRegex(value) + '$', true, false).draw();
+
+            const count = table.rows({ search: 'applied' }).count();
+
+            if (count === 1) {
+              const row = table.row({ search: 'applied' }).data();
+              $('#search-result').text(
+                '順位 ' + row["順位"] + '位 ／ 合計スコア ' + row["合計スコア"] +
+                ' ／ ' + row["センター"]
+              );
+            } else {
+              $('#search-result').text('該当する管理コードがありません。');
+            }
+          }
+
+          $('#management-search').on('input', applyManagementSearch);
+
+          $('#clear-search').on('click', function () {
+            $('#management-search').val('');
+            table.column(1).search('').draw();
+            $('#search-result').text('');
+            $('#management-search').focus();
+          });
         }
       });
     });
   </script>
+
 </body>
 </html>
