@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>登録データ確認｜3万人フリータイム2026</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+               "Noto Sans JP", sans-serif;
+  margin: 0;
+  background: #f5f7fa;
+  color: #222;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 14px 40px;
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.note {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.search-box {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+select {
+  min-width: 150px;
+  padding: 9px 10px;
+  font-size: 16px;
+}
+
+button {
+  padding: 10px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.result-info {
+  margin: 12px 0 8px;
+  font-weight: 600;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: white;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+th, td {
+  padding: 11px 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+
+th {
+  background: #e9eef5;
+  white-space: nowrap;
+}
+
+td:first-child {
+  font-weight: 600;
+}
+
+.message {
+  padding: 25px;
+  text-align: center;
+  color: #666;
+  background: white;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 14px 8px 30px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  .controls {
+    gap: 8px;
+  }
+
+  select {
+    min-width: 120px;
+  }
+
+  th, td {
+    padding: 9px 7px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>登録データ確認</h1>
+
+<div class="note">
+3万人フリータイムイベント2026　担当者確認用
+</div>
+
+<div class="search-box">
+
+<div class="controls">
+
+<div class="control">
+<label for="prefecture">県記号</label>
+<select id="prefecture">
+<option value="">選択してください</option>
+</select>
+</div>
+
+<div class="control">
+<label for="center">センターコード</label>
+<select id="center" disabled>
+<option value="">選択してください</option>
+</select>
+</div>
+
+<button id="showButton">表示</button>
+
+</div>
+</div>
+
+<div id="resultInfo" class="result-info"></div>
+
+<div class="table-wrap">
+
+<table id="resultTable" style="display:none;">
+<thead>
+<tr>
+<th>管理No</th>
+<th>G1</th>
+<th>G2</th>
+<th>G3</th>
+<th>合計</th>
+</tr>
+</thead>
+
+<tbody id="resultBody"></tbody>
+
+</table>
+
+<div id="message" class="message">
+県記号とセンターコードを選択してください。
+</div>
+
+</div>
+</div>
+
+<script>
+
+let allData = [];
+
+fetch("check.csv?ts=" + Date.now())
+  .then(response => {
+    if (!response.ok) {
+      throw new Error("check.csvを読み込めませんでした");
+    }
+    return response.text();
+  })
+  .then(text => {
+
+    const lines = text
+      .replace(/^\uFEFF/, "")
+      .trim()
+      .split(/\r?\n/);
+
+    allData = lines.slice(1).map(line => {
+
+      const cols = line.split(",");
+
+      return {
+        managementNo: (cols[0] || "").trim(),
+        g1: (cols[1] || "").trim(),
+        g2: (cols[2] || "").trim(),
+        g3: (cols[3] || "").trim(),
+        total: (cols[4] || "").trim()
+      };
+
+    }).filter(row => row.managementNo);
+
+    createPrefectureList();
+
+  })
+  .catch(error => {
+
+    document.getElementById("message").textContent =
+      "データを読み込めませんでした。";
+
+    console.error(error);
+
+  });
+
+
+function createPrefectureList() {
+
+  const prefectures =
+    [...new Set(
+      allData
+        .map(row => row.managementNo.substring(0,2))
+        .filter(Boolean)
+    )].sort();
+
+  const select = document.getElementById("prefecture");
+
+  prefectures.forEach(code => {
+
+    const option = document.createElement("option");
+
+    option.value = code;
+    option.textContent = code;
+
+    select.appendChild(option);
+
+  });
+
+}
+
+
+document.getElementById("prefecture")
+.addEventListener("change", function() {
+
+  const prefecture = this.value;
+
+  const centerSelect =
+    document.getElementById("center");
+
+  centerSelect.innerHTML =
+    '<option value="">選択してください</option>';
+
+  if (!prefecture) {
+
+    centerSelect.disabled = true;
+    return;
+
+  }
+
+  const centers =
+    [...new Set(
+      allData
+        .filter(row =>
+          row.managementNo.startsWith(prefecture)
+        )
+        .map(row =>
+          row.managementNo.substring(0,4)
+        )
+    )].sort();
+
+  centers.forEach(code => {
+
+    const option =
+      document.createElement("option");
+
+    option.value = code;
+    option.textContent = code;
+
+    centerSelect.appendChild(option);
+
+  });
+
+  centerSelect.disabled = false;
+
+});
+
+
+document.getElementById("showButton")
+.addEventListener("click", function() {
+
+  const prefecture =
+    document.getElementById("prefecture").value;
+
+  const center =
+    document.getElementById("center").value;
+
+  if (!prefecture || !center) {
+
+    alert("県記号とセンターコードを選択してください。");
+    return;
+
+  }
+
+  const results =
+    allData
+      .filter(row =>
+        row.managementNo.startsWith(center)
+      )
+      .sort((a,b) =>
+        a.managementNo.localeCompare(
+          b.managementNo,
+          undefined,
+          { numeric:true }
+        )
+      );
+
+  const tbody =
+    document.getElementById("resultBody");
+
+  tbody.innerHTML = "";
+
+  results.forEach(row => {
+
+    const tr =
+      document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${escapeHtml(row.managementNo)}</td>
+      <td>${escapeHtml(row.g1)}</td>
+      <td>${escapeHtml(row.g2)}</td>
+      <td>${escapeHtml(row.g3)}</td>
+      <td>${escapeHtml(row.total)}</td>
+    `;
+
+    tbody.appendChild(tr);
+
+  });
+
+  const table =
+    document.getElementById("resultTable");
+
+  const message =
+    document.getElementById("message");
+
+  if (results.length === 0) {
+
+    table.style.display = "none";
+
+    message.style.display = "block";
+    message.textContent =
+      "該当する登録データはありません。";
+
+    document.getElementById("resultInfo")
+      .textContent = "";
+
+  } else {
+
+    message.style.display = "none";
+    table.style.display = "table";
+
+    document.getElementById("resultInfo")
+      .textContent =
+      center + "　登録件数：" +
+      results.length + "件";
+
+  }
+
+});
+
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+</script>
+
+</body>
+</html>
