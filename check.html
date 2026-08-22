@@ -1,155 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>登録データ確認｜3万人フリータイム2026</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f5f7fa;
+  color: #222;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+               "Noto Sans JP", sans-serif;
+}
+
+.container {
+  width: min(920px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 32px 0 50px;
+}
+
+h1 {
+  margin: 0 0 5px;
+  font-size: 25px;
+}
+
+.subtitle {
+  margin-bottom: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.search-box {
+  padding: 16px;
+  margin-bottom: 18px;
+  background: #fff;
+  border-radius: 9px;
+}
+
+.controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+select {
+  min-width: 145px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #aaa;
+  background: #fff;
+  font-size: 16px;
+}
+
+button {
+  height: 40px;
+  padding: 0 24px;
+  border: 1px solid #888;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #eef2f6;
+}
+
+.result-info {
+  margin: 12px 2px 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.table-wrap {
+  background: #fff;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 11px 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+
+th {
+  background: #e9eef5;
+  white-space: nowrap;
+}
+
+td:first-child {
+  font-weight: 700;
+}
+
+.message {
+  padding: 28px 12px;
+  background: #fff;
+  color: #666;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .container {
+    width: calc(100% - 16px);
+    padding-top: 18px;
+  }
+
+  h1 {
+    font-size: 21px;
+  }
+
+  .search-box {
+    padding: 12px;
+  }
+
+  .controls {
+    gap: 8px;
+  }
+
+  select {
+    min-width: 118px;
+  }
+
+  button {
+    padding: 0 18px;
+  }
+
+  th, td {
+    padding: 9px 7px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>登録データ確認</h1>
+
+  <div class="subtitle">
+    3万人フリータイムイベント2026　担当者確認用
+  </div>
+
+  <div class="search-box">
+    <div class="controls">
+
+      <div class="control">
+        <label for="prefecture">県記号</label>
+        <select id="prefecture">
+          <option value="">選択してください</option>
+          <option value="KA">KA</option>
+          <option value="TK">TK</option>
+          <option value="SA">SA</option>
+          <option value="CH">CH</option>
+          <option value="TC">TC</option>
+          <option value="GU">GU</option>
+          <option value="IB">IB</option>
+          <option value="NA">NA</option>
+          <option value="YA">YA</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="center">センターコード</label>
+        <select id="center">
+          <option value="">選択してください</option>
+          <option value="01">01</option>
+          <option value="02">02</option>
+          <option value="03">03</option>
+          <option value="04">04</option>
+          <option value="05">05</option>
+          <option value="06">06</option>
+          <option value="07">07</option>
+          <option value="08">08</option>
+          <option value="09">09</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+          <option value="16">16</option>
+          <option value="17">17</option>
+          <option value="18">18</option>
+        </select>
+      </div>
+
+      <button id="showButton" type="button">表示</button>
+
+    </div>
+  </div>
+
+  <div id="resultInfo" class="result-info"></div>
+
+  <div class="table-wrap">
+
+    <table id="resultTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>管理No</th>
+          <th>G1</th>
+          <th>G2</th>
+          <th>G3</th>
+          <th>合計</th>
+        </tr>
+      </thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+
+    <div id="message" class="message">
+      県記号とセンターコードを選択してください。
+    </div>
+
+  </div>
+
+</div>
+
 <script>
 
 let allData = [];
 
-const prefectureCodes = [
-  "KA", "TK", "SA", "CH", "TC",
-  "GU", "IB", "NA", "YA"
-];
-
+/* check.csv 読み込み */
 fetch("check.csv?ts=" + Date.now())
+
   .then(response => {
     if (!response.ok) {
       throw new Error("check.csvを読み込めませんでした");
     }
     return response.text();
   })
+
   .then(text => {
 
+    text = text.replace(/^\uFEFF/, "");
+
     const lines = text
-      .replace(/^\uFEFF/, "")
-      .trim()
-      .split(/\r?\n/);
+      .split(/\r?\n/)
+      .filter(line => line.trim() !== "");
 
-    allData = lines.slice(1).map(line => {
+    if (lines.length <= 1) {
+      throw new Error("check.csvにデータがありません");
+    }
 
-      const cols = line.split(",");
+    /*
+      check.csv
+      0 = CenterKey
+      1 = 管理No
+      2 = G1
+      3 = G2
+      4 = G3
+      5 = Total
+    */
 
-      return {
-        managementNo: (cols[0] || "").trim().replace(/^"|"$/g, ""),
-        g1: (cols[1] || "").trim().replace(/^"|"$/g, ""),
-        g2: (cols[2] || "").trim().replace(/^"|"$/g, ""),
-        g3: (cols[3] || "").trim().replace(/^"|"$/g, ""),
-        total: (cols[4] || "").trim().replace(/^"|"$/g, "")
-      };
+    allData = lines
+      .slice(1)
+      .map(line => {
 
-    }).filter(row => row.managementNo);
+        const cols = parseCSVLine(line);
 
-    createPrefectureList();
-    createCenterList();
+        return {
+          centerKey: cleanValue(cols[0]),
+          managementNo: cleanValue(cols[1]),
+          g1: cleanValue(cols[2]),
+          g2: cleanValue(cols[3]),
+          g3: cleanValue(cols[4]),
+          total: cleanValue(cols[5])
+        };
+
+      })
+      .filter(row => row.managementNo !== "");
 
   })
-  .catch(error => {
 
-    document.getElementById("message").textContent =
-      "データを読み込めませんでした。";
+  .catch(error => {
 
     console.error(error);
 
-  });
-
-
-function createPrefectureList() {
-
-  const select =
-    document.getElementById("prefecture");
-
-  prefectureCodes.forEach(code => {
-
-    const option =
-      document.createElement("option");
-
-    option.value = code;
-    option.textContent = code;
-
-    select.appendChild(option);
+    document.getElementById("message").textContent =
+      "登録データを読み込めませんでした。";
 
   });
 
-}
 
+/* 表示 */
+document
+  .getElementById("showButton")
+  .addEventListener("click", function () {
 
-function createCenterList() {
+    const prefecture =
+      document.getElementById("prefecture").value;
 
-  const select =
-    document.getElementById("center");
+    const centerNo =
+      document.getElementById("center").value;
 
-  select.innerHTML =
-    '<option value="">選択してください</option>';
+    if (!prefecture || !centerNo) {
+      alert("県記号とセンターコードを選択してください。");
+      return;
+    }
 
-  for (let i = 1; i <= 18; i++) {
+    /* GU + 03 → GU03 */
+    const centerCode = prefecture + centerNo;
 
-    const code =
-      String(i).padStart(2, "0");
-
-    const option =
-      document.createElement("option");
-
-    option.value = code;
-    option.textContent = code;
-
-    select.appendChild(option);
-
-  }
-
-  select.disabled = false;
-
-}
-
-
-document.getElementById("showButton")
-.addEventListener("click", function() {
-
-  const prefecture =
-    document.getElementById("prefecture").value;
-
-  const centerNo =
-    document.getElementById("center").value;
-
-  if (!prefecture || !centerNo) {
-
-    alert("県記号とセンターコードを選択してください。");
-    return;
-
-  }
-
-  const centerCode =
-    prefecture + centerNo;
-
-  const results =
-    allData
+    const results = allData
       .filter(row =>
+        row.centerKey === centerCode ||
         row.managementNo.startsWith(centerCode)
       )
-      .sort((a,b) =>
+      .sort((a, b) =>
         a.managementNo.localeCompare(
           b.managementNo,
-          undefined,
-          { numeric:true }
+          "ja",
+          {
+            numeric: true,
+            sensitivity: "base"
+          }
         )
       );
 
-  const tbody =
-    document.getElementById("resultBody");
-
-  tbody.innerHTML = "";
-
-  results.forEach(row => {
-
-    const tr =
-      document.createElement("tr");
-
-    tr.innerHTML = `
-      <td>${escapeHtml(row.managementNo)}</td>
-      <td>${escapeHtml(row.g1)}</td>
-      <td>${escapeHtml(row.g2)}</td>
-      <td>${escapeHtml(row.g3)}</td>
-      <td>${escapeHtml(row.total)}</td>
-    `;
-
-    tbody.appendChild(tr);
+    displayResults(centerCode, results);
 
   });
+
+
+function displayResults(centerCode, results) {
+
+  const tbody =
+    document.getElementById("resultBody");
 
   const table =
     document.getElementById("resultTable");
@@ -157,30 +358,94 @@ document.getElementById("showButton")
   const message =
     document.getElementById("message");
 
+  const resultInfo =
+    document.getElementById("resultInfo");
+
+  tbody.innerHTML = "";
+
   if (results.length === 0) {
 
     table.style.display = "none";
-
     message.style.display = "block";
+
     message.textContent =
-      "該当する登録データはありません。";
+      centerCode + " の登録データはありません。";
 
-    document.getElementById("resultInfo")
-      .textContent = "";
+    resultInfo.textContent = "";
 
-  } else {
-
-    message.style.display = "none";
-    table.style.display = "table";
-
-    document.getElementById("resultInfo")
-      .textContent =
-      centerCode + "　登録件数：" +
-      results.length + "件";
-
+    return;
   }
 
-});
+  results.forEach(row => {
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML =
+      "<td>" + escapeHtml(row.managementNo) + "</td>" +
+      "<td>" + escapeHtml(row.g1) + "</td>" +
+      "<td>" + escapeHtml(row.g2) + "</td>" +
+      "<td>" + escapeHtml(row.g3) + "</td>" +
+      "<td>" + escapeHtml(row.total) + "</td>";
+
+    tbody.appendChild(tr);
+
+  });
+
+  message.style.display = "none";
+  table.style.display = "table";
+
+  resultInfo.textContent =
+    centerCode + "　登録件数：" +
+    results.length + "件";
+}
+
+
+/* CSV解析 */
+function parseCSVLine(line) {
+
+  const result = [];
+  let current = "";
+  let insideQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+
+    const char = line[i];
+
+    if (char === '"') {
+
+      if (insideQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+
+    } else if (char === "," && !insideQuotes) {
+
+      result.push(current);
+      current = "";
+
+    } else {
+
+      current += char;
+
+    }
+  }
+
+  result.push(current);
+
+  return result;
+}
+
+
+function cleanValue(value) {
+
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  return String(value).trim();
+}
 
 
 function escapeHtml(value) {
@@ -191,7 +456,9 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-
 }
 
 </script>
+
+</body>
+</html>
