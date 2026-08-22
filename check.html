@@ -317,7 +317,6 @@ fetch("check.csv?ts=" + Date.now())
     */
 
     allData = lines
-      .slice(1)
       .map(line => {
 
         const cols = parseCSVLine(line);
