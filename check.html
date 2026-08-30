@@ -285,7 +285,9 @@ td:first-child {
 let allData = [];
 
 /* check.csv 読み込み */
-fetch("/ranking2026/check.csv?ts=" + Date.now())
+fetch("https://takehiko2324.github.io/ranking2026/check.csv?ts=" + Date.now(), {
+  cache: "no-store"
+})
   .then(response => {
     if (!response.ok) {
       throw new Error("check.csvを読み込めませんでした");
@@ -301,7 +303,7 @@ fetch("/ranking2026/check.csv?ts=" + Date.now())
       .split(/\r?\n/)
       .filter(line => line.trim() !== "");
 
-    if (lines.length <= 1) {
+    if (lines.length === 0) {
       throw new Error("check.csvにデータがありません");
     }
 
@@ -321,8 +323,8 @@ fetch("/ranking2026/check.csv?ts=" + Date.now())
         const cols = parseCSVLine(line);
 
         return {
-          centerKey: cleanValue(cols[0]),
-          managementNo: cleanValue(cols[1]),
+          centerKey: cleanValue(cols[0]).toUpperCase(),
+          managementNo: cleanValue(cols[1]).toUpperCase(),
           g1: cleanValue(cols[2]),
           g2: cleanValue(cols[3]),
           g3: cleanValue(cols[4]),
@@ -330,7 +332,15 @@ fetch("/ranking2026/check.csv?ts=" + Date.now())
         };
 
       })
-      .filter(row => row.managementNo !== "");
+      .filter(row =>
+        row.managementNo !== "" &&
+        row.managementNo.toUpperCase() !== "管理NO" &&
+        row.centerKey !== "CENTERKEY"
+      );
+
+    if (allData.length === 0) {
+      throw new Error("check.csvに有効な登録データがありません");
+    }
 
   })
 
@@ -342,6 +352,7 @@ fetch("/ranking2026/check.csv?ts=" + Date.now())
       "登録データを読み込めませんでした。";
 
   });
+
 
 
 /* 表示 */
@@ -361,7 +372,7 @@ document
     }
 
     /* GU + 03 → GU03 */
-    const centerCode = prefecture + centerNo;
+    const centerCode = (prefecture + centerNo).trim().toUpperCase();
 
     const results = allData
       .filter(row =>
