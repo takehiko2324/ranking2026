@@ -1,23 +1,18 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>登録データ確認｜3万人フリータイム2026</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
   background: #f5f7fa;
   color: #222;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
-               "Noto Sans JP", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
 }
 
 .container {
@@ -37,7 +32,6 @@ h1 {
   font-size: 14px;
 }
 
-/* 修正依頼 */
 .correction-area {
   margin: 0 0 18px;
 }
@@ -56,9 +50,7 @@ h1 {
   box-shadow: 0 2px 6px rgba(0,0,0,0.16);
 }
 
-.correction-button:hover {
-  opacity: 0.88;
-}
+.correction-button:hover { opacity: 0.88; }
 
 .search-box {
   padding: 16px;
@@ -104,9 +96,7 @@ button {
   cursor: pointer;
 }
 
-button:hover {
-  background: #eef2f6;
-}
+button:hover { background: #eef2f6; }
 
 .result-info {
   margin: 12px 2px 8px;
@@ -136,9 +126,7 @@ th {
   white-space: nowrap;
 }
 
-td:first-child {
-  font-weight: 700;
-}
+td:first-child { font-weight: 700; }
 
 .message {
   padding: 28px 12px;
@@ -147,46 +135,35 @@ td:first-child {
   text-align: center;
 }
 
+.message.error {
+  color: #b00020;
+  font-weight: 700;
+}
+
 @media (max-width: 600px) {
   .container {
     width: calc(100% - 16px);
     padding-top: 18px;
   }
 
-  h1 {
-    font-size: 21px;
-  }
+  h1 { font-size: 21px; }
 
   .correction-button {
     font-size: 15px;
     padding: 13px 12px;
   }
 
-  .search-box {
-    padding: 12px;
-  }
+  .search-box { padding: 12px; }
+  .controls { gap: 8px; }
+  select { min-width: 118px; }
+  button { padding: 0 18px; }
 
-  .controls {
-    gap: 8px;
-  }
-
-  select {
-    min-width: 118px;
-  }
-
-  button {
-    padding: 0 18px;
-  }
-
-  th, td {
-    padding: 9px 7px;
-  }
+  th, td { padding: 9px 7px; }
 }
 </style>
 </head>
 
 <body>
-
 <div class="container">
 
   <h1>登録データ確認</h1>
@@ -273,184 +250,152 @@ td:first-child {
     </table>
 
     <div id="message" class="message">
-      県記号とセンターコードを選択してください。
+      登録データを読み込み中です…
     </div>
 
   </div>
-
 </div>
 
 <script>
-
 let allData = [];
+let dataReady = false;
 
-/* check.csv 読み込み */
-fetch("check.csv?ts=" + Date.now(), { cache: "no-store" })
-  .then(response => {
+/* =========================================================
+   check.csv 読み込み
+   GitHub Pages:
+   /ranking2026/check.html と同じフォルダの check.csv を読む
+   ========================================================= */
+async function loadCheckCSV() {
+  const message = document.getElementById("message");
+
+  try {
+    const response = await fetch("./check.csv?ts=" + Date.now(), {
+      cache: "no-store"
+    });
+
     if (!response.ok) {
-      throw new Error("check.csvを読み込めませんでした");
+      throw new Error("HTTP " + response.status);
     }
-    return response.text();
-  })
-  .then(text => {
 
-    text = text.replace(/^\uFEFF/, "");
+    let text = await response.text();
+
+    // BOM除去・改行統一
+    text = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
     const lines = text
-      .split(/\r?\n/)
-      .filter(line => line.trim() !== "");
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line !== "");
 
-    if (lines.length === 0) {
-      throw new Error("check.csvにデータがありません");
+    const rows = [];
+
+    for (const line of lines) {
+      const cols = parseCSVLine(line).map(cleanValue);
+
+      // 現在の check.csv:
+      // 0=CenterKey, 1=管理No, 2=G1, 3=G2, 4=G3, 5=Total
+      if (cols.length < 6) continue;
+
+      const centerKey = cols[0].toUpperCase();
+      const managementNo = cols[1].toUpperCase();
+
+      // ヘッダーが将来入っても除外
+      if (
+        centerKey === "CENTERKEY" ||
+        managementNo === "管理NO" ||
+        managementNo === "管理NO." ||
+        managementNo === "MANAGEMENTNO"
+      ) {
+        continue;
+      }
+
+      if (!/^[A-Z]{2}\d{2}$/.test(centerKey)) continue;
+      if (!managementNo.startsWith(centerKey)) continue;
+
+      rows.push({
+        centerKey,
+        managementNo,
+        g1: cols[2],
+        g2: cols[3],
+        g3: cols[4],
+        total: cols[5]
+      });
     }
 
-    /*
-      新旧どちらの check.csv にも対応
-      A: CenterKey, 管理No, G1, G2, G3, Total
-      B: 管理No, G1, G2, G3, Total
-    */
+    allData = rows;
+    dataReady = true;
 
-    allData = lines
-      .map(line => {
+    message.classList.remove("error");
+    message.textContent = "県記号とセンターコードを選択してください。";
 
-        const cols = parseCSVLine(line).map(cleanValue);
+  } catch (error) {
+    console.error("check.csv load error:", error);
 
-        let centerKey = "";
-        let managementNo = "";
-        let g1 = "";
-        let g2 = "";
-        let g3 = "";
-        let total = "";
+    allData = [];
+    dataReady = false;
 
-        const first = (cols[0] || "").toUpperCase();
-        const second = (cols[1] || "").toUpperCase();
+    message.classList.add("error");
+    message.textContent =
+      "登録データを読み込めませんでした。ページを再読み込みしてください。";
+  }
+}
 
-        // A形式：先頭が GU03 のようなCenterKey、2列目が GU030001 のような管理No
-        if (/^[A-Z]{2}\d{2}$/.test(first) && /^[A-Z]{2}\d{6}$/.test(second)) {
-          centerKey = first;
-          managementNo = second;
-          g1 = cols[2] || "";
-          g2 = cols[3] || "";
-          g3 = cols[4] || "";
-          total = cols[5] || "";
-        }
-        // B形式：先頭が管理No
-        else if (/^[A-Z]{2}\d{6}$/.test(first)) {
-          managementNo = first;
-          centerKey = first.substring(0, 4);
-          g1 = cols[1] || "";
-          g2 = cols[2] || "";
-          g3 = cols[3] || "";
-          total = cols[4] || "";
-        }
-        // その他：行内から管理Noを自動検出
-        else {
-          const idx = cols.findIndex(v =>
-            /^[A-Z]{2}\d{6}$/.test(String(v).trim().toUpperCase())
-          );
+/* =========================================================
+   表示
+   ========================================================= */
+document.getElementById("showButton").addEventListener("click", function () {
 
-          if (idx >= 0) {
-            managementNo = String(cols[idx]).trim().toUpperCase();
-            centerKey = managementNo.substring(0, 4);
-            g1 = cols[idx + 1] || "";
-            g2 = cols[idx + 2] || "";
-            g3 = cols[idx + 3] || "";
-            total = cols[idx + 4] || "";
-          }
-        }
+  if (!dataReady) {
+    alert("登録データの読み込みが完了していません。");
+    return;
+  }
 
-        return {
-          centerKey,
-          managementNo,
-          g1,
-          g2,
-          g3,
-          total
-        };
+  const prefecture =
+    document.getElementById("prefecture").value.trim().toUpperCase();
 
-      })
-      .filter(row => row.managementNo !== "");
+  const centerNo =
+    document.getElementById("center").value.trim();
 
-  })
-  .catch(error => {
-    console.error(error);
-    document.getElementById("message").textContent =
-      "登録データを読み込めませんでした。";
-  });
+  if (!prefecture || !centerNo) {
+    alert("県記号とセンターコードを選択してください。");
+    return;
+  }
 
+  const centerCode = prefecture + centerNo;
 
-
-/* 表示 */
-document
-  .getElementById("showButton")
-  .addEventListener("click", function () {
-
-    const prefecture =
-      document.getElementById("prefecture").value;
-
-    const centerNo =
-      document.getElementById("center").value;
-
-    if (!prefecture || !centerNo) {
-      alert("県記号とセンターコードを選択してください。");
-      return;
-    }
-
-    /* GU + 03 → GU03 */
-    const centerCode = (prefecture + centerNo).trim().toUpperCase();
-
-    const results = allData
-      .filter(row =>
-        row.centerKey === centerCode ||
-        row.managementNo.startsWith(centerCode)
+  const results = allData
+    .filter(row => row.centerKey === centerCode)
+    .sort((a, b) =>
+      a.managementNo.localeCompare(
+        b.managementNo,
+        "ja",
+        { numeric: true, sensitivity: "base" }
       )
-      .sort((a, b) =>
-        a.managementNo.localeCompare(
-          b.managementNo,
-          "ja",
-          {
-            numeric: true,
-            sensitivity: "base"
-          }
-        )
-      );
+    );
 
-    displayResults(centerCode, results);
-
-  });
+  displayResults(centerCode, results);
+});
 
 
 function displayResults(centerCode, results) {
 
-  const tbody =
-    document.getElementById("resultBody");
-
-  const table =
-    document.getElementById("resultTable");
-
-  const message =
-    document.getElementById("message");
-
-  const resultInfo =
-    document.getElementById("resultInfo");
+  const tbody = document.getElementById("resultBody");
+  const table = document.getElementById("resultTable");
+  const message = document.getElementById("message");
+  const resultInfo = document.getElementById("resultInfo");
 
   tbody.innerHTML = "";
+  message.classList.remove("error");
 
   if (results.length === 0) {
-
     table.style.display = "none";
     message.style.display = "block";
-
-    message.textContent =
-      centerCode + " の登録データはありません。";
-
+    message.textContent = centerCode + " の登録データはありません。";
     resultInfo.textContent = "";
-
     return;
   }
 
-  results.forEach(row => {
-
+  for (const row of results) {
     const tr = document.createElement("tr");
 
     tr.innerHTML =
@@ -461,19 +406,20 @@ function displayResults(centerCode, results) {
       "<td>" + escapeHtml(row.total) + "</td>";
 
     tbody.appendChild(tr);
-
-  });
+  }
 
   message.style.display = "none";
   table.style.display = "table";
 
   resultInfo.textContent =
-    centerCode + "　登録件数：" +
-    results.length + "件";
+    centerCode + "　登録件数：" + results.length + "件";
 }
 
 
-/* CSV解析 */
+/* =========================================================
+   CSV 1行解析
+   ダブルクォート・カンマ入りにも対応
+   ========================================================= */
 function parseCSVLine(line) {
 
   const result = [];
@@ -501,28 +447,21 @@ function parseCSVLine(line) {
     } else {
 
       current += char;
-
     }
   }
 
   result.push(current);
-
   return result;
 }
 
 
 function cleanValue(value) {
-
-  if (value === undefined || value === null) {
-    return "";
-  }
-
+  if (value === undefined || value === null) return "";
   return String(value).trim();
 }
 
 
 function escapeHtml(value) {
-
   return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -531,6 +470,9 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+
+/* ページ表示時に読み込む */
+loadCheckCSV();
 </script>
 
 </body>
