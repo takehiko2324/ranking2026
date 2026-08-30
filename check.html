@@ -285,8 +285,7 @@ td:first-child {
 let allData = [];
 
 /* check.csv 読み込み */
-fetch("check.csv?ts=" + Date.now())
-
+fetch("/ranking2026/check.csv?ts=" + Date.now())
   .then(response => {
     if (!response.ok) {
       throw new Error("check.csvを読み込めませんでした");
