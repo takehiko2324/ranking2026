@@ -322,7 +322,7 @@ async function loadCheckCSV() {
       });
     }
 
-        // 時刻以外の登録内容がすべて同じ行は1件だけ表示する。    // check.csv には時刻列がないため、担当者画面に表示する全6項目を    // 結合したキーで完全一致の重複だけを除外する。    const uniqueRows = new Map();    for (const row of rows) {      const duplicateKey = [        row.centerKey,        row.managementNo,        row.g1,        row.g2,        row.g3,        row.total      ].join("\u001F");      if (!uniqueRows.has(duplicateKey)) {        uniqueRows.set(duplicateKey, row);      }    }    allData = Array.from(uniqueRows.values());
+        const uniqueRows = new Map(rows.map(row => [JSON.stringify([row.centerKey, row.managementNo, row.g1, row.g2, row.g3, row.total]), row])); allData = Array.from(uniqueRows.values());    // check.csv には時刻列がないため、担当者画面に表示する全6項目を    // 結合したキーで完全一致の重複だけを除外する。    const uniqueRows = new Map();    for (const row of rows) {      const duplicateKey = [        row.centerKey,        row.managementNo,        row.g1,        row.g2,        row.g3,        row.total      ].join("\u001F");      if (!uniqueRows.has(duplicateKey)) {        uniqueRows.set(duplicateKey, row);      }    }    allData = Array.from(uniqueRows.values());
     dataReady = true;
 
     message.classList.remove("error");
